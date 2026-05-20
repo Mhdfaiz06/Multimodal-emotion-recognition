@@ -1,0 +1,12 @@
+# Virtual Environment
+venv/
+__pycache__/
+
+# Datasets and Media
+data/raw/
+*.zip
+*.wav
+
+# Model Checkpoints
+checkpoints/
+*.pt
