@@ -1,4 +1,4 @@
-# 🎭 Multimodal Emotion Recognition System
+#  Multimodal Emotion Recognition System
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.9%2B-blue?style=for-the-badge&logo=python" />
@@ -18,7 +18,7 @@ This project bridges the gap between research-oriented AI models and scalable so
 By fusing state-of-the-art transformer models with a robust backend architecture, the system achieves high-accuracy inference while remaining easily deployable.
 
 
-## 🚀 Live Demo
+##  Live Demo
 
 > **Try it instantly — no setup required:**
 >
@@ -36,7 +36,7 @@ Upload a `.wav` file, type a sentence, or provide both to get real-time emotion 
 
 ---
 
-## 📌 Table of Contents
+##  Table of Contents
 
 - [Overview](#-overview)
 - [Architecture](#-architecture)
@@ -53,7 +53,7 @@ Upload a `.wav` file, type a sentence, or provide both to get real-time emotion 
 
 ---
 
-## 🧠 Overview
+##  Overview
 
 This project builds a **three-pipeline emotion recognition system** trained on the **TESS (Toronto Emotional Speech Set)** dataset. The system intelligently routes inputs through the best available model:
 
@@ -89,7 +89,7 @@ The key finding: the **multimodal fusion model significantly outperforms either 
 
 ---
 
-## 🎯 Detected Emotions
+##  Detected Emotions
 
 The system classifies into **7 emotion categories**:
 
@@ -105,7 +105,7 @@ The system classifies into **7 emotion categories**:
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 multimodal-emotion-recognition/
@@ -236,7 +236,7 @@ Expected dataset statistics:
 
 ---
 
-## 🏋️ Training the Models
+##  Training the Models
 
 Models must be trained in this order: **Speech → Text → Fusion**
 
@@ -280,11 +280,11 @@ python models/fusion_pipeline/train.py
 - Checkpoints saved to: `checkpoints/fusion/hybrid_epoch_N.pt`
 - Expected training time: ~60–120 min on GPU
 
-> **⚠️ Important:** The training scripts contain a `break` statement for local testing. **Remove the `break` inside the training loop** before running full training in Colab or on a server.
+> ** Important:** The training scripts contain a `break` statement for local testing. **Remove the `break` inside the training loop** before running full training in Colab or on a server.
 
 ---
 
-## 🖥️ Running the API Locally
+##  Running the API Locally
 
 After training, the final checkpoints are loaded by the FastAPI server. The server expects:
 - `checkpoints/speech/speech_epoch_10.pt`
@@ -347,7 +347,7 @@ The container uses `python:3.9-slim`, installs `libsndfile1` and `ffmpeg` system
 
 ---
 
-## 🌐 Using the Web UI
+##  Using the Web UI
 
 Open your browser and go to `http://localhost:8000` (local) or the [live Hugging Face Space](https://huggingface.co/spaces/faiz06/hybrid-emotion-detection-ai).
 
@@ -372,7 +372,7 @@ The UI displays the predicted emotion label and a confidence score.
 
 ---
 
-## 📊 Results
+##  Results
 
 | Model | Architecture | Test Accuracy | Weighted F1 |
 |---|---|---|---|
@@ -384,7 +384,7 @@ The low text-only accuracy (~45%) is an **expected and informative result**: TES
 
 ---
 
-## 🔧 Troubleshooting
+##  Troubleshooting
 
 | Error | Cause | Fix |
 |---|---|---|
@@ -397,7 +397,7 @@ The low text-only accuracy (~45%) is an **expected and informative result**: TES
 
 ---
 
-## 🔗 Links
+##  Links
 
 | Resource | Link |
 |---|---|
@@ -409,6 +409,14 @@ The low text-only accuracy (~45%) is an **expected and informative result**: TES
 
 ---
 
-## 📄 License
+
+## Author
+
+**Mohammed Faiz** 
+* **Department**: Computer Science  
+* **Institution**: Saintgits College of Engineering, Kottayam
+
+
+##  License
 
 This project is submitted as an academic project for IIIT Hydrabad Research teaser program ,from Mohammed Faiz of Saintgits College of Engineering. All pre-trained model weights are subject to their respective licenses (Meta AI / HuggingFace).
