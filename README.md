@@ -4,6 +4,7 @@ This project bridges the gap between research-oriented AI models and scalable so
 
 By fusing state-of-the-art transformer models with a robust backend architecture, the system achieves high-accuracy inference while remaining easily deployable.
 
+
 ### Core Architecture
 *   **Acoustic Processing:** Leverages **wav2vec2** to extract prosodic features—such as pitch and intensity—from raw audio signals.
 *   **Linguistic Processing:** Utilizes **RoBERTa** for deep semantic analysis of the corresponding text.

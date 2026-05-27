@@ -52,6 +52,7 @@ models/fusion_pipeline/train.py
 models/speech_pipeline/train.py
 models/text_pipeline/train.py
 requirements.txt
+upload.py
 utils/data_loader.py
 utils/dataset.py
 </directory_structure>
@@ -5818,7 +5819,27 @@ data\raw\archive\TESS Toronto emotional speech set data\YAF_sad\YAF_youth_sad.wa
 </file>
 
 <file path="Dockerfile">
+# Use a lightweight Python image
+FROM python:3.9-slim
 
+WORKDIR /app
+
+# Install system dependencies required for librosa and soundfile
+RUN apt-get update && apt-get install -y libsndfile1 ffmpeg && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install them, plus the huggingface_hub library
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt huggingface_hub
+
+# THE MAGIC TRICK: Download your massive weights directly into the container!
+RUN huggingface-cli download faiz06/hybrid-emotion-weights --local-dir .
+
+# Copy the rest of your app files into the container
+COPY . .
+
+EXPOSE 7860
+
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
 </file>
 
 <file path="index.html">
@@ -6518,6 +6539,24 @@ uvicorn[standard]==0.29.0
 python-multipart==0.0.9
 pydantic==2.7.1
 tqdm==4.66.4
+numpy<2.0.0
+</file>
+
+<file path="upload.py">
+from huggingface_hub import HfApi
+
+api = HfApi()
+
+print("Uploading heavy models to the unlimited Model Hub...")
+
+api.upload_folder(
+    folder_path="checkpoints",         # Grab ONLY the checkpoints folder
+    path_in_repo="checkpoints",        # Keep the same folder structure
+    repo_id="faiz06/hybrid-emotion-weights", # Your new Model repo
+    repo_type="model",                 # Specify it's a model, not a space!
+)
+
+print("Upload complete! Weights are safely stored.")
 </file>
 
 <file path="utils/data_loader.py">
