@@ -1,16 +1,4 @@
-# Multimodal Emotion Recognition System
-
-This project bridges the gap between research-oriented AI models and scalable software engineering. It is a production-grade, hybrid Multimodal Emotion Recognition system designed to analyze both *what* is being said (textual semantics) and *how* it is being said (acoustic prosody). 
-
-By fusing state-of-the-art transformer models with a robust backend architecture, the system achieves high-accuracy inference while remaining easily deployable.
-
-
-### Core Architecture
-*   **Acoustic Processing:** Leverages **wav2vec2** to extract prosodic features—such as pitch and intensity—from raw audio signals.
-*   **Linguistic Processing:** Utilizes **RoBERTa** for deep semantic analysis of the corresponding text.
-*   **Fusion Mechanism:** Implements **cross-modal attention** to intelligently weigh and combine auditory and textual signals for the final emotional classification.
-*   **Data Pipeline:** Built around the **TESS** (Toronto Emotional Speech Set) dataset, utilizing a structured data manifest to cleanly align audio and text pairs.
-# 🎭 Hybrid Multimodal Emotion Recognition
+# 🎭 Multimodal Emotion Recognition System
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.9%2B-blue?style=for-the-badge&logo=python" />
@@ -25,6 +13,10 @@ By fusing state-of-the-art transformer models with a robust backend architecture
 </p>
 
 ---
+This project bridges the gap between research-oriented AI models and scalable software engineering. It is a production-grade, hybrid Multimodal Emotion Recognition system designed to analyze both *what* is being said (textual semantics) and *how* it is being said (acoustic prosody). 
+
+By fusing state-of-the-art transformer models with a robust backend architecture, the system achieves high-accuracy inference while remaining easily deployable.
+
 
 ## 🚀 Live Demo
 
@@ -33,6 +25,14 @@ By fusing state-of-the-art transformer models with a robust backend architecture
 > 🌐 **[https://huggingface.co/spaces/faiz06/hybrid-emotion-detection-ai](https://huggingface.co/spaces/faiz06/hybrid-emotion-detection-ai)**
 
 Upload a `.wav` file, type a sentence, or provide both to get real-time emotion predictions.
+
+---
+
+### Core Architecture
+*   **Acoustic Processing:** Leverages **wav2vec2** to extract prosodic features—such as pitch and intensity—from raw audio signals.
+*   **Linguistic Processing:** Utilizes **RoBERTa** for deep semantic analysis of the corresponding text.
+*   **Fusion Mechanism:** Implements **cross-modal attention** to intelligently weigh and combine auditory and textual signals for the final emotional classification.
+*   **Data Pipeline:** Built around the **TESS** (Toronto Emotional Speech Set) dataset, utilizing a structured data manifest to cleanly align audio and text pairs.
 
 ---
 
@@ -67,7 +67,7 @@ The key finding: the **multimodal fusion model significantly outperforms either 
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 ### 1. Speech Pipeline — `Wav2Vec2`
 - Backbone: `facebook/wav2vec2-base` (pre-trained on LibriSpeech)
@@ -200,7 +200,7 @@ numpy<2.0.0
 
 ---
 
-## 📦 Dataset Setup
+##  Dataset Setup
 
 The project uses the **TESS (Toronto Emotional Speech Set)** dataset from Kaggle.
 
@@ -411,4 +411,4 @@ The low text-only accuracy (~45%) is an **expected and informative result**: TES
 
 ## 📄 License
 
-This project is submitted as an academic project for the Department of Computer Science, Saintgits College of Engineering. All pre-trained model weights are subject to their respective licenses (Meta AI / HuggingFace).
+This project is submitted as an academic project for IIIT Hydrabad Research teaser program ,from Mohammed Faiz of Saintgits College of Engineering. All pre-trained model weights are subject to their respective licenses (Meta AI / HuggingFace).
