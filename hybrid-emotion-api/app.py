@@ -1,83 +1,128 @@
-from fastapi import FastAPI, UploadFile, Form
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.responses import HTMLResponse 
+from fastapi.middleware.cors import CORSMiddleware 
 import torch
 import librosa
 import io
-import sys
-import os
-
-# Ensure we can import from our models directory
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
 from transformers import Wav2Vec2Processor, RobertaTokenizer
-from models.fusion import HybridFusionEngine
 
-app = FastAPI(title="Hybrid Emotion Engine")
+# Import your architectures based on your new, clean folder structure
+from models.fusion_pipeline.fusion import HybridFusionEngine
+from models.speech_pipeline.train import SpeechEmotionModel
+from models.text_pipeline.train import TextEmotionModel
 
-# 1. Initialize the Engine
+app = FastAPI(title="Multimodal Emotion Recognition API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_ui():
+    with open("index.html", "r", encoding="utf-8") as f:
+        return f.read()
+    
 device = "cuda" if torch.cuda.is_available() else "cpu"
-print(f"Booting Inference Engine on {device.upper()}...")
 
-# Load Architecture
-model = HybridFusionEngine(num_classes=7).to(device)
+# Global dictionaries to store our loaded models and processors
+models = {}
+processors = {}
 
-# Load Processors
-audio_processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base")
-tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
+# Emotion mapping (Make sure this matches your training data labels)
+LABELS = ["angry", "disgust", "fear", "happy", "neutral", "ps", "sad"]
 
-# Mapping based on alphabetical sorting of TESS folders
-EMOTIONS = {
-    0: "Angry", 
-    1: "Disgust", 
-    2: "Fear", 
-    3: "Happy", 
-    4: "Neutral", 
-    5: "Pleasant Surprise", 
-    6: "Sad"
-}
-
-# We will load the weights dynamically when the app starts
 @app.on_event("startup")
-async def load_weights():
-    weights_path = "checkpoints/hybrid_epoch_10.pt"
-    if os.path.exists(weights_path):
-        model.load_state_dict(torch.load(weights_path, map_location=device))
-        model.eval()
-        print("Production weights loaded successfully.")
-    else:
-        print(f"WARNING: Weights not found at {weights_path}. Model is untrained.")
+async def load_infrastructure():
+    print(f"Booting up API on {device.upper()}...")
+    
+    # 1. Load Processors (Tokenizers & Audio Extractors)
+    processors['audio'] = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base")
+    processors['text'] = RobertaTokenizer.from_pretrained("roberta-base")
 
-# 2. The Prediction Endpoint
+    # 2. Load Speech-Only Model
+    print("Loading Speech Engine...")
+    speech_model = SpeechEmotionModel(num_classes=7).to(device)
+    speech_model.load_state_dict(torch.load("checkpoints/speech/speech_epoch_10.pt", map_location=device))
+    speech_model.eval()
+    models['speech'] = speech_model
+
+    # 3. Load Text-Only Model
+    print("Loading Text Engine...")
+    text_model = TextEmotionModel(num_classes=7).to(device)
+    text_model.load_state_dict(torch.load("checkpoints/text/text_epoch_10.pt", map_location=device))
+    text_model.eval()
+    models['text'] = text_model
+
+    # 4. Load Hybrid Fusion Model
+    print("Loading Hybrid Fusion Engine...")
+    hybrid_model = HybridFusionEngine(num_classes=7).to(device)
+    hybrid_model.load_state_dict(torch.load("checkpoints/fusion/hybrid_epoch_10.pt", map_location=device))
+    hybrid_model.eval()
+    models['fusion'] = hybrid_model
+
+    print("✅ All systems initialized and ready for inference!")
+
 @app.post("/predict")
-async def predict_emotion(audio: UploadFile, text: str = Form(...)):
-    # Read raw audio bytes
-    audio_bytes = await audio.read()
-    
-    # Preprocess Audio (Resample to 16kHz for wav2vec2)
-    speech, _ = librosa.load(io.BytesIO(audio_bytes), sr=16000)
-    input_values = audio_processor(
-        speech, sampling_rate=16000, return_tensors="pt", 
-        padding="max_length", max_length=48000, truncation=True
-    ).input_values.to(device)
-    
-    # Preprocess Text (Tokenize for RoBERTa)
-    text_inputs = tokenizer(
-        text, return_tensors="pt", 
-        padding="max_length", max_length=64, truncation=True
-    )
-    input_ids = text_inputs.input_ids.to(device)
-    attention_mask = text_inputs.attention_mask.to(device)
+async def predict_emotion(
+    audio_file: UploadFile = File(None), 
+    text: str = Form(None)
+):
+    # Route 1: Error Catching (User provided nothing)
+    if not audio_file and not text:
+        raise HTTPException(status_code=400, detail="You must provide either an audio file, text, or both.")
 
-    # 3. Network Forward Pass
+    # --- Processing Functions ---
+    def process_audio(file):
+        speech, _ = librosa.load(io.BytesIO(file), sr=16000)
+        return processors['audio'](
+            speech, sampling_rate=16000, return_tensors="pt", 
+            padding="max_length", max_length=48000, truncation=True
+        ).input_values.to(device)
+
+    def process_text(text_str):
+        inputs = processors['text'](
+            text_str, return_tensors="pt", 
+            padding="max_length", max_length=64, truncation=True
+        )
+        return inputs.input_ids.to(device), inputs.attention_mask.to(device)
+
+    # --- THE ROUTER ---
     with torch.no_grad():
-        logits = model(input_values, input_ids, attention_mask)
-        prediction = torch.argmax(logits, dim=-1).item()
-        
-        # Calculate confidence percentage
-        probabilities = torch.softmax(logits, dim=-1)[0]
-        confidence = probabilities[prediction].item()
+        # Route 2: Fusion (Both provided)
+        if audio_file and text:
+            print("Routing to: HYBRID FUSION MODEL")
+            audio_bytes = await audio_file.read()
+            input_values = process_audio(audio_bytes)
+            input_ids, attention_mask = process_text(text)
+            
+            logits = models['fusion'](input_values, input_ids, attention_mask)
+            used_model = "Hybrid Multimodal"
+
+        # Route 3: Speech Only
+        elif audio_file and not text:
+            print("Routing to: SPEECH-ONLY MODEL")
+            audio_bytes = await audio_file.read()
+            input_values = process_audio(audio_bytes)
+            
+            logits = models['speech'](input_values)
+            used_model = "Audio Only"
+
+        # Route 4: Text Only
+        elif text and not audio_file:
+            print("Routing to: TEXT-ONLY MODEL")
+            input_ids, attention_mask = process_text(text)
+            
+            logits = models['text'](input_ids, attention_mask)
+            used_model = "Text Only"
+
+    # --- Format Output ---
+    prediction = torch.argmax(logits, dim=-1).item()
+    confidence = torch.softmax(logits, dim=-1)[0][prediction].item()
 
     return {
-        "emotion": EMOTIONS[prediction],
-        "confidence": f"{confidence * 100:.2f}%",
-        "analyzed_text": text
+        "emotion": LABELS[prediction],
+        "confidence": round(confidence * 100, 2),
+        "model_used": used_model
     }

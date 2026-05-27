@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hybrid Emotion Recognition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // We added a custom animation and keyframes for the water ripple!
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            500: '#9b51e0',
+                            600: '#8a40c9',
+                        }
+                    },
+                    animation: {
+                        'ripple': 'ripple 2s cubic-bezier(0, 0, 0.2, 1) infinite',
+                        'ripple-delayed': 'ripple 2s cubic-bezier(0, 0, 0.2, 1) 1s infinite',
+                    },
+                    keyframes: {
+                        ripple: {
+                            '0%': { transform: 'scale(1)', opacity: '0.4' },
+                            '100%': { transform: 'scale(1.15)', opacity: '0' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen flex items-center justify-center p-4 font-sans overflow-hidden">
+
+    <div class="relative w-full max-w-lg">
+        
+        <div id="ripple1" class="absolute inset-0 bg-brand-500 rounded-2xl hidden z-0 pointer-events-none"></div>
+        <div id="ripple2" class="absolute inset-0 bg-brand-500 rounded-2xl hidden z-0 pointer-events-none"></div>
+
+        <div class="relative z-10 w-full bg-gray-900 rounded-2xl shadow-2xl border border-brand-500/20 p-8">
+            
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-white tracking-tight mb-2">Hybrid AI Fusion</h1>
+                <p class="text-gray-400 text-sm font-medium uppercase tracking-wider">Multimodal Emotion Engine</p>
+            </div>
+
+            <div class="space-y-6">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">1. Text Input (Optional)</label>
+                    <input type="text" id="textInput" 
+                        class="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+                        placeholder="Enter what was said...">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">2. Audio Input (Choose one)</label>
+                    
+                    <input type="file" id="fileInput" accept="audio/*"
+                        class="w-full bg-gray-800 border border-gray-700 text-gray-300 rounded-lg px-4 py-2.5 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-700 file:text-white hover:file:bg-gray-600 transition-all cursor-pointer">
+                    
+                    <div id="activeAudioBadge" class="hidden items-center justify-between bg-brand-500/20 border border-brand-500/50 rounded-lg px-4 py-3">
+                        <div class="flex items-center gap-3">
+                            <span id="audioIcon">🎵</span>
+                            <span id="audioBadgeName" class="text-sm font-medium text-gray-100">live_recording.wav</span>
+                        </div>
+                        <button id="clearAudioBtn" class="text-gray-400 hover:text-red-500 transition-colors text-2xl font-bold leading-none pb-1" title="Remove Audio">
+                            &times;
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <button id="recordBtn" class="flex-1 flex justify-center items-center gap-2 bg-red-500/10 text-red-500 border border-red-500/30 rounded-lg py-3 font-semibold hover:bg-red-500 hover:text-white transition-all duration-200 z-20">
+                        <span class="relative flex h-3 w-3">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 hidden" id="recordPing"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500" id="recordDot"></span>
+                        </span>
+                        <span id="recordText">Record Live</span>
+                    </button>
+                    
+                    <button id="stopBtn" disabled class="flex-1 flex justify-center items-center gap-2 bg-gray-800 text-gray-400 rounded-lg py-3 font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700 hover:text-white transition-all duration-200 z-20">
+                        ⏹ Stop
+                    </button>
+                </div>
+                
+                <div id="recordingStatus" class="text-xs text-brand-500 font-medium text-center h-4"></div>
+
+                <button id="submitBtn" class="w-full bg-brand-500 hover:bg-brand-600 text-white rounded-lg py-4 font-bold text-lg shadow-lg shadow-brand-500/25 transition-all duration-200 active:scale-[0.98]">
+                    Analyze Emotion ⚡
+                </button>
+            </div>
+
+            <div id="result-box" class="mt-8 hidden">
+                <div class="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-6 text-center">
+                    <div class="text-3xl font-bold text-emerald-400 capitalize tracking-tight mb-2" id="emotionOut">Happy</div>
+                    <div class="flex items-center justify-center gap-4 text-xs font-medium text-gray-400">
+                        <span id="confidenceOut">98.2%</span>
+                        <span class="w-1 h-1 rounded-full bg-gray-600"></span>
+                        <span id="pipelineOut" class="text-emerald-500/70">Fusion</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+    let mediaRecorder;
+    let audioChunks = [];
+    let liveAudioBlob = null;
+
+    const recordBtn = document.getElementById('recordBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const statusText = document.getElementById('recordingStatus');
+    const recordPing = document.getElementById('recordPing');
+    const recordText = document.getElementById('recordText');
+    
+    const fileInput = document.getElementById('fileInput');
+    const activeAudioBadge = document.getElementById('activeAudioBadge');
+    const audioBadgeName = document.getElementById('audioBadgeName');
+    const audioIcon = document.getElementById('audioIcon');
+    const clearAudioBtn = document.getElementById('clearAudioBtn');
+
+    // Ripple Elements
+    const ripple1 = document.getElementById('ripple1');
+    const ripple2 = document.getElementById('ripple2');
+
+    async function convertToTrueWav(audioChunks) {
+        const blob = new Blob(audioChunks);
+        const arrayBuffer = await blob.arrayBuffer();
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        
+        const numOfChan = audioBuffer.numberOfChannels;
+        const sampleRate = audioBuffer.sampleRate;
+        const length = audioBuffer.length * numOfChan;
+        const buffer = new ArrayBuffer(44 + length * 2);
+        const view = new DataView(buffer);
+        
+        const writeString = (view, offset, string) => {
+            for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
+        };
+        
+        writeString(view, 0, 'RIFF');
+        view.setUint32(4, 36 + length * 2, true);
+        writeString(view, 8, 'WAVE');
+        writeString(view, 12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true); 
+        view.setUint16(22, numOfChan, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * numOfChan * 2, true);
+        view.setUint16(32, numOfChan * 2, true);
+        view.setUint16(34, 16, true);
+        writeString(view, 36, 'data');
+        view.setUint32(40, length * 2, true);
+        
+        let offset = 44;
+        const channels = [];
+        for (let i = 0; i < numOfChan; i++) channels.push(audioBuffer.getChannelData(i));
+        
+        for (let i = 0; i < audioBuffer.length; i++) {
+            for (let channel = 0; channel < numOfChan; channel++) {
+                let s = Math.max(-1, Math.min(1, channels[channel][i]));
+                view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+                offset += 2;
+            }
+        }
+        return new Blob([view], { type: 'audio/wav' });
+    }
+
+    function setAudioUI(filename, isLive) {
+        fileInput.classList.add('hidden'); 
+        activeAudioBadge.classList.remove('hidden');
+        activeAudioBadge.classList.add('flex'); 
+        
+        audioBadgeName.innerText = filename;
+        audioIcon.innerText = isLive ? '🎙️' : '📁';
+        statusText.innerText = ""; 
+    }
+
+    function clearAudioUI() {
+        fileInput.value = ""; 
+        liveAudioBlob = null; 
+        
+        fileInput.classList.remove('hidden'); 
+        activeAudioBadge.classList.add('hidden');
+        activeAudioBadge.classList.remove('flex');
+        
+        document.getElementById('result-box').classList.add('hidden'); 
+    }
+
+    clearAudioBtn.addEventListener('click', clearAudioUI);
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+            liveAudioBlob = null;
+            setAudioUI(fileInput.files[0].name, false);
+        }
+    });
+
+    // --- Microphone Recording Logic ---
+    recordBtn.addEventListener('click', async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = event => {
+                if (event.data.size > 0) audioChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = async () => {
+                statusText.innerText = "Transcoding audio to WAV...";
+                liveAudioBlob = await convertToTrueWav(audioChunks);
+                setAudioUI("live_recording.wav", true);
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            mediaRecorder.start();
+            
+            clearAudioUI();
+            
+            // Turn on Ripple Animations
+            ripple1.classList.remove('hidden');
+            ripple1.classList.add('animate-ripple');
+            ripple2.classList.remove('hidden');
+            ripple2.classList.add('animate-ripple-delayed');
+
+            recordBtn.classList.replace('bg-red-500/10', 'bg-red-500');
+            recordBtn.classList.replace('text-red-500', 'text-white');
+            recordPing.classList.remove('hidden'); 
+            document.getElementById('recordDot').classList.replace('bg-red-500', 'bg-white');
+            
+            recordText.innerText = "Recording...";
+            stopBtn.disabled = false;
+            recordBtn.disabled = true;
+            statusText.innerText = "Listening...";
+        } catch (err) {
+            alert("Microphone access denied or not found!");
+        }
+    });
+
+    stopBtn.addEventListener('click', () => {
+        mediaRecorder.stop();
+        
+        // Turn off Ripple Animations
+        ripple1.classList.add('hidden');
+        ripple1.classList.remove('animate-ripple');
+        ripple2.classList.add('hidden');
+        ripple2.classList.remove('animate-ripple-delayed');
+
+        recordBtn.classList.replace('bg-red-500', 'bg-red-500/10');
+        recordBtn.classList.replace('text-white', 'text-red-500');
+        recordPing.classList.add('hidden'); 
+        document.getElementById('recordDot').classList.replace('bg-white', 'bg-red-500');
+
+        recordText.innerText = "Record Live";
+        stopBtn.disabled = true;
+        recordBtn.disabled = false;
+    });
+
+    // --- Submit to API Logic ---
+    submitBtn.addEventListener('click', async () => {
+        const textValue = document.getElementById('textInput').value;
+        const fileUpload = document.getElementById('fileInput').files[0];
+        const resultBox = document.getElementById('result-box');
+        
+        if (!textValue && !fileUpload && !liveAudioBlob) {
+            alert("Please provide at least some text or audio!");
+            return;
+        }
+
+        const originalText = submitBtn.innerText;
+        submitBtn.innerText = "Analyzing...";
+        submitBtn.classList.add('opacity-75', 'cursor-wait');
+
+        const formData = new FormData();
+        if (textValue) formData.append("text", textValue);
+        
+        if (fileUpload) {
+            formData.append("audio_file", fileUpload);
+        } else if (liveAudioBlob) {
+            const audioFile = new File([liveAudioBlob], "live_recording.wav", { type: "audio/wav" });
+            formData.append("audio_file", audioFile);
+        }
+
+        try {
+            const response = await fetch('/predict', { method: 'POST', body: formData });
+            const data = await response.json();
+            
+            if (response.ok) {
+                document.getElementById('emotionOut').innerText = data.emotion;
+                document.getElementById('confidenceOut').innerText = `Confidence: ${data.confidence}%`;
+                document.getElementById('pipelineOut').innerText = `Model: ${data.model_used}`;
+                
+                resultBox.classList.remove('hidden');
+            } else {
+                alert("Error: " + data.detail);
+            }
+        } catch (error) {
+            alert("API connection failed. Is the server running?");
+        } finally {
+            submitBtn.innerText = originalText;
+            submitBtn.classList.remove('opacity-75', 'cursor-wait');
+        }
+    });
+</script>
+</body>
+</html>
