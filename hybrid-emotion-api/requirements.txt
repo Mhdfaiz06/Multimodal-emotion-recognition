@@ -10,3 +10,4 @@ uvicorn[standard]==0.29.0
 python-multipart==0.0.9
 pydantic==2.7.1
 tqdm==4.66.4
+numpy<2.0.0 
